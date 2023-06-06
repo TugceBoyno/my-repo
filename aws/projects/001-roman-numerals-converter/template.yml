@@ -44,7 +44,7 @@ Resources:
         - !Ref MySecurityGroup
       Tags: 
         - Key: Name 
-          Value: TugceRomanCalculatorServer
+          Value: !Ref ServerName
       UserData: !Base64 |
         #!/bin/bash -x
 
