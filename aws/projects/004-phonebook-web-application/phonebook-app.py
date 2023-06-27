@@ -34,12 +34,12 @@ def init_phonebook_db():
     PRIMARY KEY (id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """
-    cursor.execute(phonebook_table) # This is the connection to our database.
+    cursor.execute(phonebook_table) # This is the connection to our database.
 
 # Write a function named `find_persons` which finds persons' record using the keyword from the phonebook table in the db,and returns result as list of dictionary 
 # `[{'id': 1, 'name':'XXXX', 'number': 'XXXXXX'}]`.
 
-# This function is to find my results that has "keyword" into database
+# This function is to find my results that has "keyword" into database
 def find_persons(keyword):
     query = f"""
     SELECT * FROM phonebook WHERE name like '%{keyword.strip().lower()}%';
@@ -116,7 +116,8 @@ def find_records():
     if request.method == 'POST':
         keyword = request.form['username']
         persons_app = find_persons(keyword) 
-        return render_template('index.html', persons_html=persons_app, keyword=keyword, show_result=True, developer_name='Tugce')
+        return render_template('index.html', persons=persons_app, keyword=keyword, show_result=True, developer_name='Tugce')
+
     else:
         return render_template('index.html', show_result=False, developer_name='Tugce')
 
