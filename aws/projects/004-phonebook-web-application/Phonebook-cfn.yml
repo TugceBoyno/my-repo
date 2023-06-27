@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Database and Securit Group test
+Parameters:
+  Subnets:
+    Description: Choose your subnets.
+    Type: List<AWS::EC2::Subnet::Id> 
+  KeyName:
+    Description: Please enter your valid Key pair.
+    Type: AWS::EC2::KeyPair::KeyName
+  MyVPC:
+    Description: VPC Id of your existing account.
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+  DBSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow MySQL Traffic
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+        Tags:
+          - Key: Name
+            Value: MySQLSecGroup
+
+  PhonebookDatabaseInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: tugce-phonebook-rds
+      DBName: clarusway_phonebook
+      Engine: MYSQL
+      EngineVersion: "8.0.33"
+      Port: "3306"
+      VPCSecurityGroups: 
+        - !GetAtt DBSecurityGroup.GroupId
+      MasterUserPassword: Serdar_1
+      MasterUsername: admin
+      DBInstanceClass: "db.t2.micro"
+      AllocatedStorage: "20"
+      AutoMinorVersionUpgrade: false
+      BackupRetentionPeriod: 7
+      DeletionProtection: false
+      MultiAZ: false
+      PubliclyAccessible: true
+
+  ALBSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Enable HTTP for ALB
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+        Tags:
+          - Value: Name
+            Key: PhonebookAppSecGrp
+
+  EC2SecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Enable SSH and HTTP for EC2
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0    
+        Tags:
+          - Value: Name
+            Key: EC2SG
+
+  WebServerLT:
+      Type: AWS::EC2::LaunchTemplate
+      Properties:
+        LaunchTemplateData:
+          ImageId: ami-022e1a32d3f742bd8
+          InstanceType: t2.micro
+          KeyName: !Ref KeyName
+          SecurityGroupIds:
+            - !GetAtt EC2SecurityGroup.GroupId
+          TagSpecifications:
+            - ResourceType: instance
+              Tags:
+                - Key: Name
+                  Value: !Sub Web Server of ${AWS::StackName} Stack
+          UserData: !Base64 |
+                  #!/bin/bash -x
+                  yum update -y
+                  yum install python3 -y
+                  yum install pip -y
+                  pip install flask
+                  pip install flask_mysql
+
+
+                  cd /home/ec2-user
+                  mkdir templates
+
+                  MyDBURI="tugce-phonebook-rds.cp5c5achioh2.us-east-1.rds.amazonaws.com"
+                  echo "${MyDBURI}" > /home/ec2-user/dbserver.endpoint
+
+                  FOLDER="https://raw.githubusercontent.com/ompayat/my-repository/main/004-phonebook-web-application/"
+
+
+                  curl -o "/home/ec2-user/templates/index.html" -L "${FOLDER}templates/index.html"
+                  curl -o "/home/ec2-user/templates/add-update.html" -L "${FOLDER}templates/add-update.html"
+                  curl -o "/home/ec2-user/templates/delete.html" -L "${FOLDER}templates/delete.html"
+                  curl -o "/home/ec2-user/phonebook-app.py" -L "${FOLDER}phonebook-app.py"
+
+                  python3 /home/ec2-user/phonebook-app.py
+
+
+#Outputs:
